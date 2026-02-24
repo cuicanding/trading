@@ -1,0 +1,5 @@
+reflex
+bcrypt
+email-validator
+duckdb
+python-dotenv

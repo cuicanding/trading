@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.trading.db
+*.db
+.web/
+.states/
+..idea/
+*.egg-info/
+dist/
+build/
