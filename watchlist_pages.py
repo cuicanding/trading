@@ -7,35 +7,74 @@ from watchlist_state import WatchlistState, TECH_COLORS
 
 
 def watchlist_page() -> rx.Component:
-    return rx.box(
-        rx.vstack(
-            _header(),
-            _index_bar(),
-            _title_bar(),
-            rx.cond(
-                WatchlistState.error_message != "",
-                rx.box(rx.text(WatchlistState.error_message, color="red"), padding="8px")
-            ),
-            rx.cond(
-                WatchlistState.success_message != "",
-                rx.box(rx.text(WatchlistState.success_message, color="green"), padding="8px")
-            ),
-            rx.cond(
-                WatchlistState.is_loading,
-                rx.spinner(size="3"),
-                _stock_groups()
-            ),
-            rx.cond(
-                WatchlistState.show_add_dialog,
-                _add_dialog()
-            ),
-            spacing="0",
-            width="100%",
-            max_width="600px",
-            margin="0 auto",
-            padding="20px"
+    return rx.fragment(
+        # 自动刷新脚本
+        rx.script("""
+            (function() {
+                // 清除旧的定时器
+                if (window.autoRefreshInterval) {
+                    clearInterval(window.autoRefreshInterval);
+                }
+                
+                // 等待Reflex加载完成
+                function startAutoRefresh() {
+                    window.autoRefreshInterval = setInterval(function() {
+                        // 通过点击隐藏的刷新按钮来触发刷新
+                        var refreshBtn = document.getElementById('auto-refresh-trigger');
+                        if (refreshBtn) {
+                            refreshBtn.click();
+                        }
+                    }, 5000);
+                }
+                
+                // 页面加载后启动
+                if (document.readyState === 'complete') {
+                    startAutoRefresh();
+                } else {
+                    window.addEventListener('load', startAutoRefresh);
+                }
+            })();
+        """),
+        # 隐藏的刷新按钮
+        rx.button(
+            "",
+            id="auto-refresh-trigger",
+            on_click=WatchlistState.auto_refresh,
+            style={"display": "none"}
         ),
-        on_mount=WatchlistState.on_mount
+        rx.box(
+            rx.vstack(
+                _header(),
+                _index_bar(),
+                _title_bar(),
+                rx.cond(
+                    WatchlistState.error_message != "",
+                    rx.box(rx.text(WatchlistState.error_message, color="red"), padding="8px")
+                ),
+                rx.cond(
+                    WatchlistState.success_message != "",
+                    rx.box(rx.text(WatchlistState.success_message, color="green"), padding="8px")
+                ),
+                rx.cond(
+                    WatchlistState.is_loading,
+                    rx.spinner(size="3"),
+                    _stock_groups()
+                ),
+                rx.cond(
+                    WatchlistState.show_add_dialog,
+                    _add_dialog()
+                ),
+                spacing="2",
+                width="100%",
+                max_width="1200px",
+                margin="0 auto",
+                padding="16px"
+            ),
+            on_mount=WatchlistState.on_mount,
+            width="100%",
+            min_height="100vh",
+            bg=TECH_COLORS["darker"]
+        )
     )
 
 
@@ -169,14 +208,32 @@ def _add_dialog() -> rx.Component:
             ),
             rx.cond(
                 WatchlistState.search_results.length() > 0,
-                rx.box(
-                    rx.foreach(WatchlistState.search_results, _search_result_item),
-                    max_height="150px",
-                    overflow_y="auto",
+                rx.vstack(
+                    rx.box(
+                        rx.foreach(WatchlistState.search_results, _search_result_item),
+                        max_height="150px",
+                        overflow_y="auto",
+                        width="100%",
+                        bg=TECH_COLORS["darker"],
+                        border_radius="8px"
+                    ),
+                    rx.text("💡 提示：灰色项为搜索不到的股票，无法选择添加", 
+                           color=TECH_COLORS["gray"], 
+                           font_size="12px",
+                           margin_top="4px"),
                     width="100%",
-                    bg=TECH_COLORS["darker"],
-                    border_radius="8px",
-                    margin_top="4px"
+                    spacing="1"
+                )
+            ),
+            rx.cond(
+                WatchlistState.add_stock_name != "",
+                rx.box(
+                    rx.text(f"已选择: {WatchlistState.add_stock_code} - {WatchlistState.add_stock_name}", 
+                           color=TECH_COLORS["success"], font_size="14px"),
+                    margin_top="8px",
+                    padding="4px 8px",
+                    bg="rgba(0,255,136,0.1)",
+                    border_radius="4px"
                 )
             ),
             rx.divider(),
@@ -196,7 +253,16 @@ def _add_dialog() -> rx.Component:
                 ),
                 rx.hstack(
                     rx.button("取消", on_click=WatchlistState.close_add_dialog, variant="outline"),
-                    rx.button("添加当前", on_click=WatchlistState.add_to_watchlist, color_scheme="blue"),
+                    rx.button(
+                        "添加当前", 
+                        on_click=WatchlistState.add_to_watchlist, 
+                        color_scheme="blue",
+                        disabled=rx.cond(
+                            (WatchlistState.add_stock_code != "") & (WatchlistState.add_stock_name == ""),
+                            True,
+                            False
+                        )
+                    ),
                     spacing="2"
                 )
             ),
@@ -218,16 +284,45 @@ def _add_dialog() -> rx.Component:
 
 
 def _search_result_item(item: dict) -> rx.Component:
+    has_name = item.get("name", "") != ""
     return rx.box(
         rx.hstack(
             rx.text(item["code"], color=TECH_COLORS["primary"], width="100px", font_weight="bold"),
-            rx.text(item["name"], color=TECH_COLORS["light"]),
+            rx.text(
+                rx.cond(
+                    has_name,
+                    item.get("name", ""),
+                    "未知股票"
+                ),
+                color=rx.cond(
+                    has_name,
+                    TECH_COLORS["light"],
+                    TECH_COLORS["gray"]
+                )
+            ),
+            rx.cond(
+                ~has_name,
+                rx.text("（无法选择）", color=TECH_COLORS["gray"], font_size="12px")
+            ),
             width="100%"
         ),
         padding="8px 12px",
-        cursor="pointer",
-        on_click=lambda: WatchlistState.toggle_stock_selection(item["code"], item["name"]),
-        _hover={"bg": "rgba(255,255,255,0.1)"},
+        cursor=rx.cond(
+            has_name,
+            "pointer",
+            "not-allowed"
+        ),
+        on_click=lambda: WatchlistState.set_selected_stock(item["code"], item.get("name", "")),
+        _hover=rx.cond(
+            has_name,
+            {"bg": "rgba(255,255,255,0.1)"},
+            {}
+        ),
+        opacity=rx.cond(
+            has_name,
+            1,
+            0.5
+        ),
         width="100%"
     )
 
@@ -238,7 +333,7 @@ def _selected_stock_item(item: dict) -> rx.Component:
         rx.text(item["name"], color="#888", font_size="12px"),
         rx.button(
             "x",
-            on_click=lambda: WatchlistState.toggle_stock_selection(item["code"], item["name"]),
+        on_click=lambda: WatchlistState.set_selected_stock(item["code"], item["name"]),
             bg="transparent",
             color=TECH_COLORS["error"],
             size="1",

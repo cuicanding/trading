@@ -163,34 +163,26 @@ class StockAPI:
         except Exception as e:
             print(f"行情API搜索失败: {e}")
         
-        if not results:
-            if keyword.isdigit() and len(keyword) <= 5:
-                code = keyword.zfill(5)
-                results.append({"code": f"{code}.HK", "name": f"港股{code}", "market": "HK"})
-            if keyword.isdigit() and len(keyword) <= 6:
-                code = keyword.zfill(6)
-                market = "SH" if code.startswith('6') else "SZ"
-                results.append({"code": f"{code}.{market}", "name": f"A股{code}", "market": market})
-            if keyword.isalpha():
-                try:
-                    secid = f"105.{keyword}"
-                    url = f"https://push2.eastmoney.com/api/qt/stock/get?secid={secid}&fields=f57,f58"
-                    headers = {
-                        'User-Agent': 'Mozilla/5.0',
-                        'Referer': 'https://quote.eastmoney.com/'
-                    }
-                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=3), headers=headers) as response:
-                        data = await response.json()
-                        if data and 'data' in data and data['data']:
-                            d = data['data']
-                            name = d.get('f58', '')
-                            if name:
-                                results.append({"code": keyword, "name": name, "market": "US"})
-                except Exception as e:
-                    print(f"美股搜索失败: {e}")
-                
-                if not results:
-                    results.append({"code": keyword, "name": keyword, "market": "US"})
+        # 如果是字母（可能是美股代码），尝试从API获取
+        if keyword.isalpha() and not results:
+            try:
+                secid = f"105.{keyword}"
+                url = f"https://push2.eastmoney.com/api/qt/stock/get?secid={secid}&fields=f57,f58"
+                headers = {
+                    'User-Agent': 'Mozilla/5.0',
+                    'Referer': 'https://quote.eastmoney.com/'
+                }
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=3), headers=headers) as response:
+                    data = await response.json()
+                    if data and 'data' in data and data['data']:
+                        d = data['data']
+                        name = d.get('f58', '')
+                        if name:
+                            results.append({"code": keyword, "name": name, "market": "US"})
+            except Exception as e:
+                print(f"美股搜索失败: {e}")
+        
+        # 不添加假结果，让搜索结果为空，前端会显示为不可选择
         
         return results[:5]
     

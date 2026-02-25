@@ -48,6 +48,8 @@ class WatchlistState(AuthState):
     show_add_dialog: bool = False
     search_results: List[dict] = []
     selected_stocks: List[dict] = []
+    
+    _auto_refresh_enabled: bool = True
 
     async def on_mount(self):
         if not self.current_user_id:
@@ -75,6 +77,12 @@ class WatchlistState(AuthState):
         
         await self._do_refresh()
         yield
+
+    async def auto_refresh(self):
+        """自动刷新，由前端定时器触发"""
+        if not self.is_refreshing:
+            await self._do_refresh()
+            yield
 
     async def _do_refresh(self):
         if self.is_refreshing:
@@ -138,13 +146,28 @@ class WatchlistState(AuthState):
     async def search_with_debounce(self, value: str):
         self.add_stock_code = value
         await asyncio.sleep(0.3)
+        yield
         
         if len(value) >= 1:
             async with aiohttp.ClientSession() as session:
                 results = await stock_api.search_stock_async(value, session)
-                self.search_results = results
+                # 如果搜索结果为空，但用户输入了代码，创建一个无名称的结果项
+                if not results and value.strip():
+                    self.search_results = [{"code": value.strip(), "name": ""}]
+                else:
+                    self.search_results = results
         else:
             self.search_results = []
+        yield
+
+    def set_selected_stock(self, code: str, name: str):
+        """设置当前选择的股票，用于单个添加"""
+        # 只有当名称不为空时才设置
+        if name and name.strip():
+            self.add_stock_code = code
+            self.add_stock_name = name
+            self.selected_stocks = []  # 清空批量选择
+            self.search_results = []  # 清空搜索结果
 
     def toggle_stock_selection(self, code: str, name: str):
         for stock in self.selected_stocks:
@@ -163,6 +186,17 @@ class WatchlistState(AuthState):
         if not self.add_stock_code:
             self.error_message = "请输入股票代码"
             return
+        
+        # 检查是否有搜索结果，如果没有则尝试搜索
+        if not self.add_stock_name:
+            async with aiohttp.ClientSession() as session:
+                info = await stock_api.get_realtime_quote_async(self.add_stock_code.split(".")[0], session)
+                if info and info.get("name"):
+                    self.add_stock_name = info["name"]
+                else:
+                    self.error_message = "搜索不到该股票，请确认股票代码是否正确"
+                    return
+        
         try:
             item_repo = WatchlistItemRepository()
             code = self.add_stock_code.split(".")[0]
@@ -170,31 +204,31 @@ class WatchlistState(AuthState):
                 self.error_message = "已在自选股中"
                 return
             name = self.add_stock_name
-            if not name:
-                async with aiohttp.ClientSession() as session:
-                    info = await stock_api.get_realtime_quote_async(code, session)
-                    name = info.get("name", "") if info else ""
+            
             item_repo.add_item(
                 user_id=str(self.current_user_id),
                 stock_code=code,
                 stock_name=name
             )
-            self.success_message = f"已添加 {name or code}"
+            self.success_message = f"已添加 {name}"
             self.show_add_dialog = False
             
             new_item = {
                 "id": "temp",
                 "stock_code": code,
-                "stock_name": name or code,
+                "stock_name": name,
                 "price": "--",
                 "pct_chg": "--%",
                 "currency": "¥",
                 "market": _get_market(code)
             }
             self.watchlist_items = self.watchlist_items + [new_item]
+            yield
             await self._do_refresh()
+            yield
         except Exception as e:
             self.error_message = f"添加失败: {str(e)}"
+            yield
 
     async def add_multiple_to_watchlist(self):
         if not self.current_user_id:
@@ -242,5 +276,7 @@ class WatchlistState(AuthState):
             self.success_message = "已删除"
             self.watchlist_items = [i for i in self.watchlist_items if i.get("id") != item_id]
             self._split_by_market()
+            yield
         except Exception as e:
             self.error_message = f"删除失败: {str(e)}"
+            yield
