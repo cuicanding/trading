@@ -108,7 +108,9 @@ def _a_stock_index_block() -> rx.Component:
     return rx.hstack(
         rx.text("🇨🇳 A股", color=TECH_COLORS["primary"], font_weight="bold", font_size="12px"),
         rx.foreach(WatchlistState.a_indices, _index_item),
-        spacing="1"
+        spacing="1",
+        flex_wrap="wrap",
+        gap="2px"
     )
 
 
@@ -117,7 +119,9 @@ def _hk_index_block() -> rx.Component:
     return rx.hstack(
         rx.text("🇭🇰 港股", color=TECH_COLORS["primary"], font_weight="bold", font_size="12px"),
         rx.foreach(WatchlistState.hk_indices, _index_item),
-        spacing="1"
+        spacing="1",
+        flex_wrap="wrap",
+        gap="2px"
     )
 
 
@@ -126,7 +130,9 @@ def _us_index_block() -> rx.Component:
     return rx.hstack(
         rx.text("🇺🇸 美股", color=TECH_COLORS["primary"], font_weight="bold", font_size="12px"),
         rx.foreach(WatchlistState.us_indices, _index_item),
-        spacing="1"
+        spacing="1",
+        flex_wrap="wrap",
+        gap="2px"
     )
 
 
@@ -358,10 +364,10 @@ def _selected_stock_item(item: dict) -> rx.Component:
         rx.text(item["code"], color=TECH_COLORS["primary"], font_size="12px"),
         rx.text(item["name"], color="#888", font_size="12px"),
         rx.button(
-            "x",
-        on_click=lambda: WatchlistState.set_selected_stock(item["code"], item["name"]),
-            bg="transparent",
-            color=TECH_COLORS["error"],
+            "✓",
+            on_click=lambda: WatchlistState.remove_from_selection(item["code"]),
+            variant="ghost",
+            color=TECH_COLORS["success"],
             size="1",
             padding="0 4px"
         ),

@@ -191,6 +191,9 @@ class WatchlistState(AuthState):
     def clear_selection(self):
         self.selected_stocks = []
 
+    def remove_from_selection(self, code: str):
+        self.selected_stocks = [s for s in self.selected_stocks if s["code"] != code]
+
     async def add_to_watchlist(self):
         if not self.current_user_id:
             self.error_message = "请先登录"
