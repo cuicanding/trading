@@ -33,6 +33,14 @@ class StockAPI:
     def _get_secid(self, stock_code: str) -> str:
         code = self._normalize_code(stock_code)
         
+        hk_index_codes = ['HSI', 'HSTECH']
+        us_index_codes = ['IXIC', 'DJI', 'SPX', 'SP500']
+        
+        if code in hk_index_codes:
+            return f"100.{code}"
+        if code in us_index_codes:
+            return f"100.{code}"
+        
         if self._is_hk_stock(stock_code):
             return f"116.{code}"
         if self._is_us_stock(stock_code):
@@ -189,6 +197,11 @@ class StockAPI:
     INDEX_CONFIG = {
         "sh": {"secid": "1.000001", "name": "上证指数", "currency": "¥"},
         "sz": {"secid": "0.399001", "name": "深证成指", "currency": "¥"},
+        "hsi": {"secid": "100.HSI", "name": "恒生指数", "currency": "HK$"},
+        "hstech": {"secid": "100.HSTECH", "name": "恒生科技", "currency": "HK$"},
+        "ixic": {"secid": "100.IXIC", "name": "纳斯达克", "currency": "$"},
+        "dji": {"secid": "100.DJI", "name": "道琼斯", "currency": "$"},
+        "sp500": {"secid": "100.SPX", "name": "标普500", "currency": "$"},
     }
     
     async def get_index_quotes_async(self, session: aiohttp.ClientSession) -> List[Dict]:
