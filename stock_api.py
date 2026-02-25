@@ -33,6 +33,11 @@ class StockAPI:
     def _get_secid(self, stock_code: str) -> str:
         code = self._normalize_code(stock_code)
         
+        index_aliases = {
+            'SP500': 'SPX',
+        }
+        code = index_aliases.get(code, code)
+        
         hk_index_codes = ['HSI', 'HSTECH']
         us_index_codes = ['IXIC', 'DJI', 'SPX']
         
