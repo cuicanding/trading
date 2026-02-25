@@ -64,6 +64,10 @@ def watchlist_page() -> rx.Component:
                     WatchlistState.show_add_dialog,
                     _add_dialog()
                 ),
+                rx.cond(
+                    WatchlistState.show_delete_confirm,
+                    _delete_confirm_dialog()
+                ),
                 spacing="2",
                 width="100%",
                 max_width="1200px",
@@ -210,7 +214,7 @@ def _stock_item(item: dict) -> rx.Component:
                 ),
                 rx.button(
                     "删除", 
-                    on_click=lambda: WatchlistState.remove_from_watchlist(item["id"]), 
+                    on_click=lambda: WatchlistState.show_delete_confirmation(item), 
                     variant="ghost", 
                     color=TECH_COLORS["error"]
                 ),
@@ -373,4 +377,46 @@ def _selected_stock_item(item: dict) -> rx.Component:
         ),
         spacing="2",
         width="100%"
+    )
+
+
+def _delete_confirm_dialog() -> rx.Component:
+    return rx.box(
+        rx.vstack(
+            rx.heading("确认删除", size="6", color=TECH_COLORS["light"]),
+            rx.text(
+                f"确定要删除 {WatchlistState.stock_to_delete.get('stock_code', '')} - {WatchlistState.stock_to_delete.get('stock_name', '')} 吗？",
+                color=TECH_COLORS["light"],
+                font_size="14px"
+            ),
+            rx.hstack(
+                rx.button(
+                    "取消",
+                    on_click=WatchlistState.cancel_delete,
+                    variant="outline"
+                ),
+                rx.button(
+                    "确认删除",
+                    on_click=WatchlistState.confirm_delete,
+                    color_scheme="red"
+                ),
+                spacing="3",
+                width="100%",
+                justify="center"
+            ),
+            spacing="4",
+            padding="24px",
+            bg=TECH_COLORS["darker"],
+            border_radius="12px",
+            width="320px",
+            align="center"
+        ),
+        position="fixed",
+        top="50%",
+        left="50%",
+        transform="translate(-50%, -50%)",
+        bg="rgba(0,0,0,0.95)",
+        padding="16px",
+        border_radius="12px",
+        z_index="1001"
     )

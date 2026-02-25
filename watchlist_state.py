@@ -49,6 +49,9 @@ class WatchlistState(AuthState):
     search_results: List[dict] = []
     selected_stocks: List[dict] = []
     
+    show_delete_confirm: bool = False
+    stock_to_delete: dict = {}
+    
     _auto_refresh_enabled: bool = True
 
     @rx.var
@@ -283,6 +286,34 @@ class WatchlistState(AuthState):
             await self._do_refresh()
         except Exception as e:
             self.error_message = f"添加失败: {str(e)}"
+
+    def show_delete_confirmation(self, item: dict):
+        """显示删除确认对话框"""
+        self.stock_to_delete = item
+        self.show_delete_confirm = True
+
+    def cancel_delete(self):
+        """取消删除"""
+        self.show_delete_confirm = False
+        self.stock_to_delete = {}
+
+    async def confirm_delete(self):
+        """确认删除"""
+        if self.stock_to_delete:
+            item_id = self.stock_to_delete.get("id")
+            if item_id:
+                try:
+                    item_repo = WatchlistItemRepository()
+                    item_repo.remove_item(item_id)
+                    self.success_message = "已删除"
+                    self.watchlist_items = [i for i in self.watchlist_items if i.get("id") != item_id]
+                    self._split_by_market()
+                    yield
+                except Exception as e:
+                    self.error_message = f"删除失败: {str(e)}"
+                    yield
+        self.show_delete_confirm = False
+        self.stock_to_delete = {}
 
     async def remove_from_watchlist(self, item_id: str):
         try:
