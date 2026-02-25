@@ -3,3 +3,5 @@ bcrypt
 email-validator
 duckdb
 python-dotenv
+akshare
+aiohttp>=3.9.0
