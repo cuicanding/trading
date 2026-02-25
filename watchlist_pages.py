@@ -91,16 +91,42 @@ def _header() -> rx.Component:
 
 
 def _index_bar() -> rx.Component:
-    return rx.box(
-        rx.hstack(
-            rx.foreach(WatchlistState.index_quotes, _index_item),
-            spacing="3",
-            width="100%",
-            overflow_x="auto"
-        ),
+    """指数行情栏 - 分市场展示"""
+    return rx.hstack(
+        _a_stock_index_block(),
+        _hk_index_block(),
+        _us_index_block(),
+        spacing="2",
         width="100%",
-        padding="12px 0",
+        padding="8px 20px",
         border_bottom=f"1px solid {TECH_COLORS['gray']}"
+    )
+
+
+def _a_stock_index_block() -> rx.Component:
+    """A股指数区块"""
+    return rx.hstack(
+        rx.text("🇨🇳 A股", color=TECH_COLORS["primary"], font_weight="bold", font_size="12px"),
+        rx.foreach(WatchlistState.a_indices, _index_item),
+        spacing="1"
+    )
+
+
+def _hk_index_block() -> rx.Component:
+    """港股指数区块"""
+    return rx.hstack(
+        rx.text("🇭🇰 港股", color=TECH_COLORS["primary"], font_weight="bold", font_size="12px"),
+        rx.foreach(WatchlistState.hk_indices, _index_item),
+        spacing="1"
+    )
+
+
+def _us_index_block() -> rx.Component:
+    """美股指数区块"""
+    return rx.hstack(
+        rx.text("🇺🇸 美股", color=TECH_COLORS["primary"], font_weight="bold", font_size="12px"),
+        rx.foreach(WatchlistState.us_indices, _index_item),
+        spacing="1"
     )
 
 

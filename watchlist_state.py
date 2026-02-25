@@ -51,6 +51,18 @@ class WatchlistState(AuthState):
     
     _auto_refresh_enabled: bool = True
 
+    @rx.var
+    def a_indices(self) -> List[dict]:
+        return [q for q in self.index_quotes if q.get("currency") == "¥"]
+
+    @rx.var
+    def hk_indices(self) -> List[dict]:
+        return [q for q in self.index_quotes if q.get("currency") == "HK$"]
+
+    @rx.var
+    def us_indices(self) -> List[dict]:
+        return [q for q in self.index_quotes if q.get("currency") == "$"]
+
     async def on_mount(self):
         if not self.current_user_id:
             return
