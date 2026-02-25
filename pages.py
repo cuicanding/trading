@@ -60,7 +60,7 @@ class RegisterState(AuthState):
             self.register_username = ""
             self.register_password = ""
             self.register_password_confirm = ""
-            return rx.redirect("/")
+            return rx.redirect("/dashboard")
         except Exception as e:
             self.error_message = f"注册失败: {str(e)}"
         finally:
@@ -94,7 +94,7 @@ class LoginState(AuthState):
                 self.error_message = "邮箱或密码错误"
                 return
             self.login(user)
-            return rx.redirect("/")
+            return rx.redirect("/dashboard")
         except Exception as e:
             self.error_message = f"登录失败: {str(e)}"
         finally:

@@ -5,3 +5,5 @@ duckdb
 python-dotenv
 akshare
 aiohttp>=3.9.0
+
+reflex==0.8.27

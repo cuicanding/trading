@@ -7,11 +7,18 @@ from pages import (
     PasswordResetConfirmState
 )
 from auth import AuthState
+from watchlist_pages import watchlist_page
+from watchlist_state import WatchlistState
+from dashboard_pages import dashboard_page
 
 
 class State(AuthState):
     """The app state."""
-    pass
+    
+    def on_load_index(self):
+        """首页加载时检查登录状态"""
+        if self.current_user_id:
+            return rx.redirect("/dashboard")
 
 
 # 科技感颜色配置
@@ -89,7 +96,6 @@ def index() -> rx.Component:
         tech_background(),
         rx.center(
             rx.vstack(
-                # Logo区域
                 rx.box(
                     rx.text(
                         "AI",
@@ -101,8 +107,6 @@ def index() -> rx.Component:
                     ),
                     margin_bottom="16px"
                 ),
-                
-                # 主标题
                 rx.heading(
                     "QUANT TRADING",
                     size="9",
@@ -112,8 +116,6 @@ def index() -> rx.Component:
                     text_shadow=f"0 0 30px rgba(0, 240, 255, 0.5)",
                     margin_bottom="8px"
                 ),
-                
-                # 副标题
                 rx.text(
                     "智能量化 · 数据驱动 · 精准决策",
                     font_size="20px",
@@ -121,28 +123,11 @@ def index() -> rx.Component:
                     letter_spacing="2px",
                     margin_bottom="48px"
                 ),
-                
-                # 功能特性
                 rx.hstack(
-                    # 特性1
                     rx.box(
-                        rx.box(
-                            "🤖",
-                            font_size="32px",
-                            margin_bottom="12px"
-                        ),
-                        rx.text(
-                            "AI驱动",
-                            font_size="16px",
-                            font_weight="600",
-                            color=TECH_COLORS["light"],
-                            margin_bottom="4px"
-                        ),
-                        rx.text(
-                            "智能算法分析",
-                            font_size="12px",
-                            color="#666677"
-                        ),
+                        rx.box("🤖", font_size="32px", margin_bottom="12px"),
+                        rx.text("AI驱动", font_size="16px", font_weight="600", color=TECH_COLORS["light"], margin_bottom="4px"),
+                        rx.text("智能算法分析", font_size="12px", color="#666677"),
                         bg="rgba(0, 240, 255, 0.05)",
                         border=f"1px solid {TECH_COLORS['primary']}",
                         border_radius="12px",
@@ -150,26 +135,10 @@ def index() -> rx.Component:
                         width="160px",
                         text_align="center"
                     ),
-                    
-                    # 特性2
                     rx.box(
-                        rx.box(
-                            "📊",
-                            font_size="32px",
-                            margin_bottom="12px"
-                        ),
-                        rx.text(
-                            "实时数据",
-                            font_size="16px",
-                            font_weight="600",
-                            color=TECH_COLORS["light"],
-                            margin_bottom="4px"
-                        ),
-                        rx.text(
-                            "毫秒级更新",
-                            font_size="12px",
-                            color="#666677"
-                        ),
+                        rx.box("📊", font_size="32px", margin_bottom="12px"),
+                        rx.text("实时数据", font_size="16px", font_weight="600", color=TECH_COLORS["light"], margin_bottom="4px"),
+                        rx.text("毫秒级更新", font_size="12px", color="#666677"),
                         bg="rgba(112, 0, 255, 0.05)",
                         border=f"1px solid {TECH_COLORS['secondary']}",
                         border_radius="12px",
@@ -177,26 +146,10 @@ def index() -> rx.Component:
                         width="160px",
                         text_align="center"
                     ),
-                    
-                    # 特性3
                     rx.box(
-                        rx.box(
-                            "🎯",
-                            font_size="32px",
-                            margin_bottom="12px"
-                        ),
-                        rx.text(
-                            "精准预测",
-                            font_size="16px",
-                            font_weight="600",
-                            color=TECH_COLORS["light"],
-                            margin_bottom="4px"
-                        ),
-                        rx.text(
-                            "高胜率策略",
-                            font_size="12px",
-                            color="#666677"
-                        ),
+                        rx.box("🎯", font_size="32px", margin_bottom="12px"),
+                        rx.text("精准预测", font_size="16px", font_weight="600", color=TECH_COLORS["light"], margin_bottom="4px"),
+                        rx.text("高胜率策略", font_size="12px", color="#666677"),
                         bg="rgba(255, 0, 170, 0.05)",
                         border=f"1px solid {TECH_COLORS['accent']}",
                         border_radius="12px",
@@ -204,19 +157,14 @@ def index() -> rx.Component:
                         width="160px",
                         text_align="center"
                     ),
-                    
                     spacing="4",
                     margin_bottom="48px"
                 ),
-                
-                # 按钮区域
                 rx.hstack(
                     tech_button("立即注册", "/register", "primary"),
                     tech_button("立即登录", "/login", "secondary"),
                     spacing="4"
                 ),
-                
-                # 底部链接
                 rx.hstack(
                     rx.link(
                         "忘记密码？",
@@ -227,21 +175,17 @@ def index() -> rx.Component:
                         _hover={"color": TECH_COLORS["primary"]}
                     ),
                     rx.box(width="1px", height="16px", bg="#2a2a35", margin_x="16px"),
-                    rx.text(
-                        "© 2025 AI Quant Trading",
-                        color="#666677",
-                        font_size="14px"
-                    ),
+                    rx.text("© 2025 AI Quant Trading", color="#666677", font_size="14px"),
                     spacing="2",
                     margin_top="32px"
                 ),
-                
                 spacing="4",
                 text_align="center"
             ),
             height="100vh",
             padding="20px"
-        )
+        ),
+        on_mount=State.on_load_index
     )
 
 
@@ -256,3 +200,5 @@ app.add_page(register_page, route="/register", title="注册")
 app.add_page(login_page, route="/login", title="登录")
 app.add_page(password_reset_request_page, route="/reset-password", title="重置密码")
 app.add_page(password_reset_confirm_page, route="/reset-password/confirm", title="设置新密码", on_load=PasswordResetConfirmState.on_load)
+app.add_page(watchlist_page, route="/watchlist", title="我的自选股")
+app.add_page(dashboard_page, route="/dashboard", title="仪表板")

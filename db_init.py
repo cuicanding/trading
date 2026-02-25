@@ -41,6 +41,44 @@ def init_database(db_path: str = "trading.db"):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token)")
     
+    # 创建自选股分组表（先删除旧表）
+    conn.execute("DROP TABLE IF EXISTS watchlist_items")
+    conn.execute("DROP TABLE IF EXISTS watchlist_groups")
+    
+    conn.execute("""
+        CREATE TABLE watchlist_groups (
+            id UUID PRIMARY KEY,
+            user_id UUID NOT NULL,
+            name VARCHAR(50) NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            UNIQUE(user_id, name)
+        )
+    """)
+    
+    # 创建自选股项目表
+    conn.execute("""
+        CREATE TABLE watchlist_items (
+            id UUID PRIMARY KEY,
+            user_id UUID NOT NULL,
+            stock_code VARCHAR(20) NOT NULL,
+            stock_name VARCHAR(100),
+            group_id UUID,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (group_id) REFERENCES watchlist_groups(id),
+            UNIQUE(user_id, stock_code)
+        )
+    """)
+    
+    # 创建自选股索引
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_watchlist_user ON watchlist_items(user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_watchlist_group ON watchlist_items(group_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_watchlist_code ON watchlist_items(stock_code)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_watchlist_groups_user ON watchlist_groups(user_id)")
+    
     # 关闭连接
     conn.close()
     

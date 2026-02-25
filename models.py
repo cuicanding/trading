@@ -6,7 +6,7 @@ import duckdb
 import uuid
 import bcrypt
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class User:
@@ -140,7 +140,7 @@ class UserRepository:
         
         if result:
             return User(
-                id=result[0],
+                id=str(result[0]),
                 email=result[1],
                 username=result[2],
                 password_hash=result[3],
@@ -161,7 +161,7 @@ class UserRepository:
         
         if result:
             return User(
-                id=result[0],
+                id=str(result[0]),
                 email=result[1],
                 username=result[2],
                 password_hash=result[3],
@@ -182,7 +182,7 @@ class UserRepository:
         
         if result:
             return User(
-                id=result[0],
+                id=str(result[0]),
                 email=result[1],
                 username=result[2],
                 password_hash=result[3],
@@ -288,3 +288,148 @@ class PasswordResetTokenRepository:
             "UPDATE password_reset_tokens SET used = TRUE WHERE token = ?",
             [token]
         )
+
+
+class WatchlistGroup:
+    """自选股分组"""
+    
+    def __init__(self, id: str, user_id: str, name: str, sort_order: int = 0, created_at: Optional[datetime] = None):
+        self.id = id
+        self.user_id = user_id
+        self.name = name
+        self.sort_order = sort_order
+        self.created_at = created_at or datetime.now()
+    
+    def to_dict(self) -> dict:
+        return {
+            'id': str(self.id),
+            'user_id': str(self.user_id),
+            'name': self.name,
+            'sort_order': self.sort_order,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class WatchlistItem:
+    """自选股项目"""
+    
+    def __init__(self, id: str, user_id: str, stock_code: str, stock_name: str = "", group_id: Optional[str] = None, sort_order: int = 0, created_at: Optional[datetime] = None):
+        self.id = id
+        self.user_id = user_id
+        self.stock_code = stock_code
+        self.stock_name = stock_name
+        self.group_id = group_id
+        self.sort_order = sort_order
+        self.created_at = created_at or datetime.now()
+    
+    def to_dict(self) -> dict:
+        return {
+            'id': str(self.id),
+            'user_id': str(self.user_id),
+            'stock_code': self.stock_code,
+            'stock_name': self.stock_name,
+            'group_id': str(self.group_id) if self.group_id else None,
+            'sort_order': self.sort_order,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class WatchlistGroupRepository:
+    """自选股分组数据访问层"""
+    
+    def __init__(self, db_path: str = "trading.db"):
+        self.db_path = db_path
+        self.conn = None
+    
+    def connect(self):
+        if self.conn is None:
+            self.conn = duckdb.connect(self.db_path)
+    
+    def create_group(self, user_id: str, name: str) -> WatchlistGroup:
+        self.connect()
+        group_id = str(uuid.uuid4())
+        self.conn.execute(
+            "INSERT INTO watchlist_groups (id, user_id, name) VALUES (?, ?, ?)",
+            [group_id, user_id, name]
+        )
+        return WatchlistGroup(id=group_id, user_id=user_id, name=name)
+    
+    def get_groups_by_user(self, user_id: str) -> list:
+        self.connect()
+        result = self.conn.execute(
+            "SELECT * FROM watchlist_groups WHERE user_id = ? ORDER BY sort_order, created_at",
+            [user_id]
+        ).fetchall()
+        return [
+            WatchlistGroup(
+                id=str(row[0]),
+                user_id=str(row[1]),
+                name=row[2],
+                sort_order=row[3],
+                created_at=row[4]
+            )
+            for row in result
+        ]
+    
+    def delete_group(self, group_id: str):
+        self.connect()
+        self.conn.execute("DELETE FROM watchlist_items WHERE group_id = ?", [group_id])
+        self.conn.execute("DELETE FROM watchlist_groups WHERE id = ?", [group_id])
+
+
+class WatchlistItemRepository:
+    """自选股项目数据访问层"""
+    
+    def __init__(self, db_path: str = "trading.db"):
+        self.db_path = db_path
+        self.conn = None
+    
+    def connect(self):
+        if self.conn is None:
+            self.conn = duckdb.connect(self.db_path)
+    
+    def add_item(self, user_id: str, stock_code: str, stock_name: str = "", group_id: str = None) -> WatchlistItem:
+        self.connect()
+        item_id = str(uuid.uuid4())
+        self.conn.execute(
+            "INSERT INTO watchlist_items (id, user_id, stock_code, stock_name, group_id) VALUES (?, ?, ?, ?, ?)",
+            [item_id, user_id, stock_code, stock_name, group_id]
+        )
+        return WatchlistItem(id=item_id, user_id=user_id, stock_code=stock_code, stock_name=stock_name, group_id=group_id)
+    
+    def get_items_by_user(self, user_id: str, group_id: str = None) -> list:
+        self.connect()
+        if group_id:
+            result = self.conn.execute(
+                "SELECT * FROM watchlist_items WHERE user_id = ? AND group_id = ? ORDER BY sort_order, created_at DESC",
+                [user_id, group_id]
+            ).fetchall()
+        else:
+            result = self.conn.execute(
+                "SELECT * FROM watchlist_items WHERE user_id = ? ORDER BY sort_order, created_at DESC",
+                [user_id]
+            ).fetchall()
+        return [
+            WatchlistItem(
+                id=str(row[0]),
+                user_id=str(row[1]),
+                stock_code=row[2],
+                stock_name=row[3],
+                group_id=str(row[4]) if row[4] else None,
+                sort_order=row[5],
+                created_at=row[6]
+            )
+            for row in result
+        ]
+    
+    def remove_item(self, item_id: str):
+        self.connect()
+        self.conn.execute("DELETE FROM watchlist_items WHERE id = ?", [item_id])
+    
+    def item_exists(self, user_id: str, stock_code: str) -> bool:
+        self.connect()
+        result = self.conn.execute(
+            "SELECT COUNT(*) FROM watchlist_items WHERE user_id = ? AND stock_code = ?",
+            [user_id, stock_code]
+        ).fetchone()
+        return result[0] > 0

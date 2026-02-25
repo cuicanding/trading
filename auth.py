@@ -61,6 +61,11 @@ class AuthState(rx.State):
         self.success_message = "登出成功"
         self.error_message = ""
     
+    def check_auth(self):
+        """检查认证状态，未认证则跳转登录页"""
+        if not self.current_user_id:
+            return rx.redirect("/login")
+    
     def clear_messages(self):
         """清除消息"""
         self.error_message = ""
