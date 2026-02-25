@@ -34,7 +34,7 @@ class StockAPI:
         code = self._normalize_code(stock_code)
         
         hk_index_codes = ['HSI', 'HSTECH']
-        us_index_codes = ['IXIC', 'DJI', 'SPX', 'SP500']
+        us_index_codes = ['IXIC', 'DJI', 'SPX']
         
         if code in hk_index_codes:
             return f"100.{code}"
