@@ -280,10 +280,14 @@ class WatchlistState(AuthState):
                     added_count += 1
             
             self.success_message = f"已添加 {added_count} 只股票"
+            yield
             self.selected_stocks = []
             self.show_add_dialog = False
+            yield
             self.watchlist_items = self.watchlist_items + new_items
+            yield
             await self._do_refresh()
+            yield
         except Exception as e:
             self.error_message = f"添加失败: {str(e)}"
 
